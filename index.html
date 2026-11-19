@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ЛовиЭфир</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101316;color:#f3f4ee;font:16px/1.5 system-ui}main{max-width:1000px;margin:auto;padding:24px}header,nav,.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}header{justify-content:space-between;border-bottom:1px solid #384146;padding-bottom:18px}strong{font-size:24px;letter-spacing:-1px}strong span{color:#aff579}button,input,select{font:inherit;border:1px solid #475053;border-radius:8px;padding:8px 12px;background:#20272a;color:inherit}button{cursor:pointer}button[aria-pressed=true],.primary{background:#aff579;color:#11220b}h1{margin:32px 0 14px}section{margin:24px 0}article,form{background:#1b2226;padding:20px;border-radius:14px;margin:14px 0}article h2{margin:0;overflow-wrap:anywhere}p{color:#bbc7bf}label{display:grid;gap:4px;margin-bottom:12px}input{max-width:100%}video{width:100%;max-height:60vh;background:black}dialog{width:min(560px,95vw);border:0;border-radius:12px;background:#1b2226;color:inherit}dialog::backdrop{background:#000a}
+</style>
+<main><header><strong>Лови<span>Эфир</span></strong><button class="primary" id="add">Добавить видео</button></header>
+<h1>Видеолента</h1><nav><button id="recommended" aria-pressed="true">Для тебя</button><button id="subscriptions" aria-pressed="false">Подписки</button></nav>
+<section id="player"></section><p role="status" id="status"></p><section id="feed"></section>
+<dialog id="upload"><form id="form"><h2>Добавить видео</h2><p>Видео сохранится в этом браузере.</p>
+<label>Название<input name="title" required maxlength="120"></label><label>Канал<input name="channel" required maxlength="80"></label><label>Тема<select name="topic"><option>Анимация</option><option>Игры</option><option>Музыка</option><option>Другое</option></select></label><label>Видеофайл<input name="file" type="file" accept="video/*" required></label><div class="actions"><button class="primary">Сохранить</button><button type="button" id="cancel">Отмена</button></div><p id="error" role="alert"></p></form></dialog></main>
+<script type="module">
+const el=id=>document.getElementById(id);
+const node=(tag,text)=>Object.assign(document.createElement(tag),{textContent:text});
+const action=(label,run)=>{const button=node('button',label);button.onclick=run;return button};
+const follows=new Set(JSON.parse(localStorage.getItem('follows')||'[]'));
+const preferences=JSON.parse(localStorage.getItem('preferences')||'{}');
+let videos=[],mode='recommended',activeUrl='';
+function closePlayer(){el('player').replaceChildren();if(activeUrl)URL.revokeObjectURL(activeUrl);activeUrl=''}
+function play(item){closePlayer();const video=document.createElement('video');activeUrl=URL.createObjectURL(item.file);video.src=activeUrl;video.controls=true;video.playsInline=true;el('player').append(node('h2',item.title),video,action('Закрыть',closePlayer));video.play().catch(()=>{});video.scrollIntoView({block:'center'})}
+function draw(){
+ for(const key of ['recommended','subscriptions'])el(key).setAttribute('aria-pressed',String(mode===key));
+ const items=videos.filter(v=>mode==='recommended'||follows.has(v.channel)).sort((a,b)=>(mode==='recommended'?((preferences[b.topic]||0)-(preferences[a.topic]||0)):0)||b.id-a.id);
+ el('feed').replaceChildren();el('status').textContent=items.length?'':mode==='recommended'?'Добавь первое видео, чтобы начать свою ленту.':'Здесь появятся видео каналов, на которые ты подпишешься.';
+ for(const v of items){const card=node('article',''),buttons=node('div','');buttons.className='actions';
+ buttons.append(action('Смотреть',()=>play(v)),action(follows.has(v.channel)?'Отписаться':'Подписаться',()=>{if(follows.has(v.channel))follows.delete(v.channel);else follows.add(v.channel);localStorage.setItem('follows',JSON.stringify([...follows]));draw()}));
+ if(mode==='recommended')for(const [label,score] of [['Больше по теме',1],['Меньше по теме',-1]])buttons.append(action(label,()=>{preferences[v.topic]=score;localStorage.setItem('preferences',JSON.stringify(preferences));draw()}));
+ card.append(node('h2',v.title),node('p',v.channel+' · '+v.topic),buttons);el('feed').append(card)}
+}
+for(const key of ['recommended','subscriptions'])el(key).onclick=()=>{mode=key;draw()};
+el('cancel').onclick=()=>el('upload').close();
+const request=indexedDB.open('loviefir',1);
+request.onupgradeneeded=()=>request.result.createObjectStore('videos',{keyPath:'id',autoIncrement:true});
+request.onerror=()=>el('status').textContent='Хранилище браузера недоступно.';
+request.onsuccess=()=>{const db=request.result;const read=db.transaction('videos').objectStore('videos').getAll();read.onsuccess=()=>{videos=read.result;draw();el('add').onclick=()=>el('upload').showModal()};
+ el('form').onsubmit=event=>{event.preventDefault();const data=new FormData(event.target);const item={title:data.get('title').trim(),channel:data.get('channel').trim(),topic:data.get('topic'),file:data.get('file')};if(!item.title||!item.channel){el('error').textContent='Введи название и канал.';return}
+ const save=event.submitter;save.disabled=true;const tx=db.transaction('videos','readwrite');const insert=tx.objectStore('videos').add(item);
+ tx.oncomplete=()=>{item.id=insert.result;videos.push(item);save.disabled=false;el('form').reset();el('error').textContent='';el('upload').close();mode='recommended';draw()};
+ tx.onabort=()=>{save.disabled=false;el('error').textContent='Не удалось сохранить видео. Проверь свободное место.'}
+ };
+};
+</script></html>
