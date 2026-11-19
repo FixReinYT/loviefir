@@ -4,39 +4,45 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#101316;color:#f3f4ee;font:16px/1.5 system-ui}main{max-width:1000px;margin:auto;padding:24px}header,nav,.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}header{justify-content:space-between;border-bottom:1px solid #384146;padding-bottom:18px}strong{font-size:24px;letter-spacing:-1px}strong span{color:#aff579}button,input,select{font:inherit;border:1px solid #475053;border-radius:8px;padding:8px 12px;background:#20272a;color:inherit}button{cursor:pointer}button[aria-pressed=true],.primary{background:#aff579;color:#11220b}h1{margin:32px 0 14px}section{margin:24px 0}article,form{background:#1b2226;padding:20px;border-radius:14px;margin:14px 0}article h2{margin:0;overflow-wrap:anywhere}p{color:#bbc7bf}label{display:grid;gap:4px;margin-bottom:12px}input{max-width:100%}video{width:100%;max-height:60vh;background:black}dialog{width:min(560px,95vw);border:0;border-radius:12px;background:#1b2226;color:inherit}dialog::backdrop{background:#000a}
 </style>
-<main><header><strong>Лови<span>Эфир</span></strong><button class="primary" id="add">Добавить видео</button></header>
-<h1>Видеолента</h1><nav><button id="recommended" aria-pressed="true">Для тебя</button><button id="subscriptions" aria-pressed="false">Подписки</button></nav>
-<section id="player"></section><p role="status" id="status"></p><section id="feed"></section>
-<dialog id="upload"><form id="form"><h2>Добавить видео</h2><p>Видео сохранится в этом браузере.</p>
-<label>Название<input name="title" required maxlength="120"></label><label>Канал<input name="channel" required maxlength="80"></label><label>Тема<select name="topic"><option>Анимация</option><option>Игры</option><option>Музыка</option><option>Другое</option></select></label><label>Видеофайл<input name="file" type="file" accept="video/*" required></label><div class="actions"><button class="primary">Сохранить</button><button type="button" id="cancel">Отмена</button></div><p id="error" role="alert"></p></form></dialog></main>
+<main><header><strong>Лови<span>Эфир</span></strong><div class="actions"><span id="identity"></span><button id="account">Войти</button><button id="uploadBtn" class="primary">Загрузить</button></div></header>
+<section id="player"></section><h1>Видеолента</h1><nav><button id="all">Для тебя</button><button id="subs">Подписки</button><input type="search" id="search" placeholder="Поиск видео и каналов" aria-label="Поиск"></nav><p id="notice" role="status"></p><section id="feed"></section>
+<dialog id="auth"><form id="credentials"><h2>Твой канал</h2><label>Название канала<input name="name" required maxlength="60"></label><label>Пароль<input type="password" name="password" required minlength="8" maxlength="200"></label><div class="actions"><button value="login">Войти</button><button value="register">Создать канал</button><button type="button" class="close">Закрыть</button></div><p role="alert"></p></form></dialog>
+<dialog id="upload"><form id="publish"><h2>Опубликовать видео</h2><label>Название<input required maxlength="120" name="title"></label><label>Тема<select name="topic"><option>Анимация</option><option>Игры</option><option>Музыка</option><option>Другое</option></select></label><label>MP4 или WebM до 256 МБ<input name="file" type="file" required accept="video/mp4,video/webm"></label><button class="primary">Опубликовать</button> <button type="button" class="close">Закрыть</button><p role="status"></p></form></dialog></main>
 <script type="module">
 const el=id=>document.getElementById(id);
 const node=(tag,text)=>Object.assign(document.createElement(tag),{textContent:text});
-const action=(label,run)=>{const button=node('button',label);button.onclick=run;return button};
-const follows=new Set(JSON.parse(localStorage.getItem('follows')||'[]'));
-const preferences=JSON.parse(localStorage.getItem('preferences')||'{}');
-let videos=[],mode='recommended',activeUrl='';
-function closePlayer(){el('player').replaceChildren();if(activeUrl)URL.revokeObjectURL(activeUrl);activeUrl=''}
-function play(item){closePlayer();const video=document.createElement('video');activeUrl=URL.createObjectURL(item.file);video.src=activeUrl;video.controls=true;video.playsInline=true;el('player').append(node('h2',item.title),video,action('Закрыть',closePlayer));video.play().catch(()=>{});video.scrollIntoView({block:'center'})}
-function draw(){
- for(const key of ['recommended','subscriptions'])el(key).setAttribute('aria-pressed',String(mode===key));
- const items=videos.filter(v=>mode==='recommended'||follows.has(v.channel)).sort((a,b)=>(mode==='recommended'?((preferences[b.topic]||0)-(preferences[a.topic]||0)):0)||b.id-a.id);
- el('feed').replaceChildren();el('status').textContent=items.length?'':mode==='recommended'?'Добавь первое видео, чтобы начать свою ленту.':'Здесь появятся видео каналов, на которые ты подпишешься.';
- for(const v of items){const card=node('article',''),buttons=node('div','');buttons.className='actions';
- buttons.append(action('Смотреть',()=>play(v)),action(follows.has(v.channel)?'Отписаться':'Подписаться',()=>{if(follows.has(v.channel))follows.delete(v.channel);else follows.add(v.channel);localStorage.setItem('follows',JSON.stringify([...follows]));draw()}));
- if(mode==='recommended')for(const [label,score] of [['Больше по теме',1],['Меньше по теме',-1]])buttons.append(action(label,()=>{preferences[v.topic]=score;localStorage.setItem('preferences',JSON.stringify(preferences));draw()}));
- card.append(node('h2',v.title),node('p',v.channel+' · '+v.topic),buttons);el('feed').append(card)}
+async function api(url,options){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw Error(data.error);return data}
+const post=(url,data)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+let me=null,mode='all',revision=0,items=[];
+function listen(element,event,fn){element.addEventListener(event,async e=>{try{await fn(e)}catch(error){el('notice').textContent=error.message}})}
+function button(label,run){const b=node('button',label);listen(b,'click',run);return b}
+function watch(v){const video=document.createElement('video');video.src='/media/'+v.id;video.controls=true;video.playsInline=true;el('player').replaceChildren(node('h2',v.title),video,button('Закрыть',()=>{el('player').replaceChildren();history.replaceState(null,'','/')}));el('player').scrollIntoView();video.play().catch(()=>{})}
+async function refresh(){
+ const version=++revision;
+ const result=await api('/api/videos?'+new URLSearchParams({mode,q:el('search').value}));
+ if(version!==revision)return;
+ items=result;el('feed').replaceChildren();el('notice').textContent=items.length?'':mode==='subs'?'Видео каналов из ваших подписок появятся здесь.':'Видео не найдены.';
+ for(const key of ['all','subs'])el(key).setAttribute('aria-pressed',String(mode===key));
+ for(const v of items){const card=node('article',''),actions=node('div','');actions.className='actions';
+ const link=node('a','Смотреть');link.href='/?v='+v.id;link.style.color='#aff579';link.onclick=e=>{if(e.ctrlKey||e.metaKey)return;e.preventDefault();history.replaceState(null,'',link.href);watch(v)};
+ actions.append(link);
+ const change=async(url,data)=>{if(!me)return el('auth').showModal();await post(url,data);await refresh()};
+ if(v.uid!==me?.id)actions.append(button(v.following?'Отписаться':'Подписаться',()=>change('/api/follow',{author:v.uid,enabled:!v.following})));
+ for(const [label,score] of [['Больше по теме',1],['Меньше по теме',-1]]){const b=button(label,()=>change('/api/vote',{video:v.id,score:v.score===score?0:score}));b.setAttribute('aria-pressed',String(v.score===score));actions.append(b)}
+ card.append(node('h2',v.title),node('p',v.name+' · '+v.topic),actions);el('feed').append(card)}
 }
-for(const key of ['recommended','subscriptions'])el(key).onclick=()=>{mode=key;draw()};
-el('cancel').onclick=()=>el('upload').close();
-const request=indexedDB.open('loviefir',1);
-request.onupgradeneeded=()=>request.result.createObjectStore('videos',{keyPath:'id',autoIncrement:true});
-request.onerror=()=>el('status').textContent='Хранилище браузера недоступно.';
-request.onsuccess=()=>{const db=request.result;const read=db.transaction('videos').objectStore('videos').getAll();read.onsuccess=()=>{videos=read.result;draw();el('add').onclick=()=>el('upload').showModal()};
- el('form').onsubmit=event=>{event.preventDefault();const data=new FormData(event.target);const item={title:data.get('title').trim(),channel:data.get('channel').trim(),topic:data.get('topic'),file:data.get('file')};if(!item.title||!item.channel){el('error').textContent='Введи название и канал.';return}
- const save=event.submitter;save.disabled=true;const tx=db.transaction('videos','readwrite');const insert=tx.objectStore('videos').add(item);
- tx.oncomplete=()=>{item.id=insert.result;videos.push(item);save.disabled=false;el('form').reset();el('error').textContent='';el('upload').close();mode='recommended';draw()};
- tx.onabort=()=>{save.disabled=false;el('error').textContent='Не удалось сохранить видео. Проверь свободное место.'}
- };
+async function init(){me=await api('/api/me');el('identity').textContent=me?.name||'';el('account').textContent=me?'Выйти':'Войти';await refresh()}
+for(const key of ['all','subs'])listen(el(key),'click',async()=>{mode=key;await refresh()});
+listen(el('search'),'input',refresh);
+listen(el('account'),'click',async()=>{if(me){await post('/api/logout',{});await init()}else el('auth').showModal()});
+el('uploadBtn').onclick=()=>el(me?'upload':'auth').showModal();
+for(const b of document.querySelectorAll('.close'))b.onclick=()=>b.closest('dialog').close();
+for(const id of ['credentials','publish'])el(id).onsubmit=async e=>{
+ e.preventDefault();const form=e.target,submit=e.submitter,status=form.querySelector('p'),data=new FormData(form);submit.disabled=true;
+ try{if(id==='credentials'){await post('/api/'+submit.value,Object.fromEntries(data))}
+ else{const file=data.get('file');if(file.size>256*1024*1024)throw Error('Максимум 256 МБ');status.textContent='Загружаем видео…';await api('/api/upload?'+new URLSearchParams({title:data.get('title'),topic:data.get('topic')}),{method:'POST',body:file});mode='all';el('search').value=''}
+ status.textContent='';form.reset();form.closest('dialog').close();await init()}
+ catch(error){status.textContent=error.message}finally{submit.disabled=false}
 };
+try{await init();const id=new URLSearchParams(location.search).get('v');if(id){const v=items.find(v=>v.id===id);if(v)watch(v);else el('notice').textContent='Видео не найдено.'}}catch(error){el('notice').textContent=error.message}
 </script></html>
