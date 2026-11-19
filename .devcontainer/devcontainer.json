@@ -1,0 +1,18 @@
+{
+  "name": "ЛовиЭфир",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
+  "forwardPorts": [
+    8080
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "ЛовиЭфир",
+      "onAutoForward": "notify"
+    }
+  },
+  "containerEnv": {
+    "DATA_DIR": "/workspaces/.loviefir-data",
+    "SECURE_COOKIE": "1"
+  },
+  "postStartCommand": "mkdir -p \"$HOME/.loviefir\" && DATA_DIR=\"$PWD/data\" nohup node server.mjs >\"$HOME/.loviefir/server.log\" 2>&1 </dev/null &"
+}
