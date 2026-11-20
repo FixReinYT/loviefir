@@ -1,48 +1,104 @@
 <!doctype html>
-<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ЛовиЭфир</title>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101114"><title>ЛовиЭфир — видео, которые хочется смотреть</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101316;color:#f3f4ee;font:16px/1.5 system-ui}main{max-width:1000px;margin:auto;padding:24px}header,nav,.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}header{justify-content:space-between;border-bottom:1px solid #384146;padding-bottom:18px}strong{font-size:24px;letter-spacing:-1px}strong span{color:#aff579}button,input,select{font:inherit;border:1px solid #475053;border-radius:8px;padding:8px 12px;background:#20272a;color:inherit}button{cursor:pointer}button[aria-pressed=true],.primary{background:#aff579;color:#11220b}h1{margin:32px 0 14px}section{margin:24px 0}article,form{background:#1b2226;padding:20px;border-radius:14px;margin:14px 0}article h2{margin:0;overflow-wrap:anywhere}p{color:#bbc7bf}label{display:grid;gap:4px;margin-bottom:12px}input{max-width:100%}video{width:100%;max-height:60vh;background:black}dialog{width:min(560px,95vw);border:0;border-radius:12px;background:#1b2226;color:inherit}dialog::backdrop{background:#000a}
-</style>
-<main><header><strong>Лови<span>Эфир</span></strong><div class="actions"><span id="identity"></span><button id="account">Войти</button><button id="uploadBtn" class="primary">Загрузить</button></div></header>
-<section id="player"></section><h1>Видеолента</h1><nav><button id="all">Для тебя</button><button id="subs">Подписки</button><input type="search" id="search" placeholder="Поиск видео и каналов" aria-label="Поиск"></nav><p id="notice" role="status"></p><section id="feed"></section>
-<dialog id="auth"><form id="credentials"><h2>Твой канал</h2><label>Название канала<input name="name" required maxlength="60"></label><label>Пароль<input type="password" name="password" required minlength="8" maxlength="200"></label><div class="actions"><button value="login">Войти</button><button value="register">Создать канал</button><button type="button" class="close">Закрыть</button></div><p role="alert"></p></form></dialog>
-<dialog id="upload"><form id="publish"><h2>Опубликовать видео</h2><label>Название<input required maxlength="120" name="title"></label><label>Тема<select name="topic"><option>Анимация</option><option>Игры</option><option>Музыка</option><option>Другое</option></select></label><label>MP4 или WebM до 256 МБ<input name="file" type="file" required accept="video/mp4,video/webm"></label><button class="primary">Опубликовать</button> <button type="button" class="close">Закрыть</button><p role="status"></p></form></dialog></main>
+:root{color-scheme:dark;--bg:#101114;--panel:#191b20;--panel2:#22252c;--line:#30343d;--muted:#a5a9b3;--text:#f5f5f7;--accent:#b6f477;--accent2:#d2ff9f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{height:68px;position:sticky;top:0;z-index:10;background:#141519ed;backdrop-filter:blur(16px);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;gap:26px}.brand{font-size:23px;font-weight:850;letter-spacing:-1.2px;white-space:nowrap}.brand span{color:var(--accent)}.brand:hover{opacity:.82}.search{max-width:560px;flex:1;margin:auto;display:flex}.search input{width:100%;border:1px solid var(--line);background:#202229;border-radius:11px 0 0 11px;padding:11px 15px;color:white}.search button,.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 15px;border-radius:10px}.search button{border-radius:0 11px 11px 0}.btn.primary{background:var(--accent);border-color:var(--accent);color:#18220e;font-weight:750}.btn:hover,.search button:hover{filter:brightness(1.12)}.user-actions{display:flex;align-items:center;gap:10px;white-space:nowrap}.user-name{color:var(--muted);font-size:13px}
+.layout{max-width:1500px;margin:auto;display:grid;grid-template-columns:220px minmax(0,1fr);gap:30px;padding:26px 30px}.sidebar{position:sticky;top:92px;align-self:start}.navgroup{display:grid;gap:6px}.navitem{display:flex;align-items:center;gap:13px;border:0;background:transparent;color:#c9cbd1;padding:12px 14px;border-radius:10px;text-align:left;font-weight:600}.navitem .ico{width:22px;text-align:center;font-size:18px}.navitem:hover,.navitem.active{background:#252a2d;color:var(--accent)}.side-note{border-top:1px solid var(--line);margin-top:24px;padding:18px 12px;color:var(--muted);font-size:12px}
+.content{min-width:0}.hero{border:1px solid #333a31;border-radius:18px;background:radial-gradient(ellipse at 90% 0%,#40542d 0,transparent 48%),linear-gradient(120deg,#222923,#181b20 70%);padding:30px 34px;margin-bottom:30px}.eyebrow{color:var(--accent);font-weight:750;text-transform:uppercase;font-size:11px;letter-spacing:1.6px}.hero h1{font-size:clamp(25px,4vw,38px);line-height:1.1;letter-spacing:-1.2px;margin:10px 0}.hero p{color:#c1c8bc;max-width:620px;margin:0 0 20px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:26px 0 17px}.section-head h1,.section-head h2{margin:0;font-size:25px;letter-spacing:-.6px}.section-head p{margin:4px 0 0;color:var(--muted)}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}.tab{border:1px solid var(--line);background:#1b1d23;color:#c5c7cd;border-radius:999px;padding:8px 15px}.tab.active{background:var(--accent);border-color:var(--accent);color:#19230e;font-weight:750}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 17px}.video-card{min-width:0}.thumb{width:100%;aspect-ratio:16/9;border-radius:13px;background:linear-gradient(140deg,#2e3931,#1c2220 55%,#30352d);position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid #333a35}.thumb:before{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:#b6f47718;filter:blur(18px)}.play{position:relative;width:48px;height:48px;border-radius:50%;background:#111b;color:var(--accent);display:grid;place-items:center;font-size:20px;border:1px solid #ffffff28}.topic{position:absolute;left:11px;bottom:10px;background:#111c;padding:4px 9px;border-radius:6px;font-size:11px;color:#e6f3dc}.video-info{display:flex;gap:11px;padding-top:12px}.avatar{flex:none;width:38px;height:38px;border-radius:50%;background:#303d2b;color:var(--accent);display:grid;place-items:center;font-weight:800}.video-copy{min-width:0;flex:1}.video-title{font-weight:700;line-height:1.35;display:block;margin-bottom:5px;overflow-wrap:anywhere}.meta,.submeta{color:var(--muted);font-size:12px}.channel-link{color:#c3c6cc}.channel-link:hover{color:var(--accent)}.card-actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 0 49px}.mini{border:1px solid var(--line);background:#1d2026;color:#c9cbd0;border-radius:7px;padding:6px 9px;font-size:12px}.mini[aria-pressed=true]{border-color:#789a53;color:var(--accent)}
+.empty{padding:48px 20px;text-align:center;border:1px dashed #3a3e46;border-radius:15px;color:var(--muted)}.empty strong{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+.profile-cover{height:170px;border-radius:16px;background:radial-gradient(ellipse at 80% 20%,#58763b,transparent 50%),linear-gradient(120deg,#252e24,#191c21);border:1px solid #384332}.profile-head{display:flex;align-items:end;gap:18px;margin:-42px 22px 20px;position:relative}.profile-head .avatar{width:92px;height:92px;font-size:32px;border:5px solid var(--bg)}.profile-title{flex:1;padding-bottom:5px}.profile-title h1{margin:0;font-size:27px}.stats{display:flex;gap:22px;color:var(--muted);font-size:13px;margin-top:5px}.stats b{color:var(--text)}.profile-actions{padding-bottom:8px}
+.player-wrap{max-width:1050px;margin:0 auto 26px}.player-wrap video{width:100%;max-height:68vh;background:#000;border-radius:14px}.player-details{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-top:14px}.player-details h1{font-size:23px;margin:0}.player-channel{display:flex;align-items:center;gap:10px;margin-top:12px}.back{background:none;border:0;color:var(--muted);padding:0 0 12px}.back:hover{color:var(--accent)}
+dialog{width:min(520px,calc(100vw - 28px));border:1px solid var(--line);border-radius:17px;background:#1a1c22;color:var(--text);padding:0;box-shadow:0 24px 80px #0009}dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}.dialog-inner{padding:25px}.dialog-inner h2{margin:0 0 18px}.field{display:grid;gap:7px;margin:13px 0;color:#d6d7dc;font-size:13px}.field input,.field select{width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);background:#111318;color:white}.dialog-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.status{color:var(--accent);min-height:22px;font-size:13px}.mobile-nav{display:none}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:190px minmax(0,1fr);gap:20px}}
+@media(max-width:720px){.top{height:60px;padding:0 14px;gap:12px}.brand{font-size:20px}.search{max-width:none}.search input{min-width:0;padding:9px}.search button{padding:8px 10px}.user-name{display:none}.user-actions{gap:6px}.user-actions .btn{padding:8px 10px;font-size:12px}.layout{display:block;padding:16px 14px 82px}.sidebar{display:none}.mobile-nav{display:flex;position:fixed;z-index:12;bottom:0;left:0;right:0;background:#17191eee;border-top:1px solid var(--line);justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom))}.mobile-nav .navitem{display:grid;justify-items:center;gap:0;font-size:10px;padding:5px 8px}.mobile-nav .ico{font-size:18px}.hero{padding:23px 20px}.grid{gap:18px 12px}.video-info{gap:8px}.avatar{width:32px;height:32px}.card-actions{margin-left:40px}.profile-head{margin-left:10px;margin-right:10px;gap:10px;flex-wrap:wrap}.profile-head .avatar{width:76px;height:76px}.profile-title h1{font-size:21px}.profile-actions{width:100%;padding-left:86px}.stats{gap:12px;flex-wrap:wrap}.section-head h1,.section-head h2{font-size:22px}}
+@media(max-width:460px){.grid{grid-template-columns:1fr}.thumb{aspect-ratio:16/8}.search button{font-size:0}.search button:after{content:"⌕";font-size:19px}.user-actions #uploadBtn{display:none}.hero h1{font-size:27px}}
+</style></head>
+<body>
+<header class="top">
+<a class="brand" href="/" id="brand">Лови<span>Эфир</span></a>
+<form class="search" id="searchForm"><input id="search" type="search" placeholder="Поиск видео и каналов" aria-label="Поиск"><button aria-label="Найти">⌕</button></form>
+<div class="user-actions"><span class="user-name" id="identity"></span><button class="btn" id="account">Войти</button><button class="btn primary" id="uploadBtn">Загрузить</button></div>
+</header>
+<div class="layout">
+<aside class="sidebar"><nav class="navgroup">
+<button class="navitem active" data-page="home"><span class="ico">⌂</span>Главная</button>
+<button class="navitem" data-page="subs"><span class="ico">▣</span>Подписки</button>
+<button class="navitem" data-page="channel"><span class="ico">◉</span>Мой канал</button>
+</nav><div class="side-note">ЛовиЭфир — место для твоих видео и авторов, за которыми интересно следить.</div></aside>
+<main class="content" id="view"><div class="empty">Загружаем ЛовиЭфир…</div></main>
+</div>
+<nav class="mobile-nav"><button class="navitem active" data-page="home"><span class="ico">⌂</span>Главная</button><button class="navitem" data-page="subs"><span class="ico">▣</span>Подписки</button><button class="navitem" data-page="channel"><span class="ico">◉</span>Мой канал</button></nav>
+
+<dialog id="auth"><form class="dialog-inner" id="credentials"><h2>Войти в ЛовиЭфир</h2><label class="field">Название канала<input name="name" required maxlength="60" autocomplete="username"></label><label class="field">Пароль<input name="password" type="password" required minlength="8" maxlength="200" autocomplete="current-password"></label><div class="dialog-actions"><button class="btn primary" value="login">Войти</button><button class="btn" value="register">Создать канал</button><button class="btn close" type="button">Отмена</button></div><p class="status" role="status"></p></form></dialog>
+<dialog id="upload"><form class="dialog-inner" id="publish"><h2>Новое видео</h2><label class="field">Название видео<input required maxlength="120" name="title" placeholder="Как называется ролик?"></label><label class="field">Категория<select name="topic"><option>Анимация</option><option>Игры</option><option>Музыка</option><option>Другое</option></select></label><label class="field">Видеофайл MP4 или WebM (до 256 МБ)<input name="file" type="file" required accept="video/mp4,video/webm"></label><div class="dialog-actions"><button class="btn primary">Опубликовать</button><button class="btn close" type="button">Отмена</button></div><p class="status" role="status"></p></form></dialog>
 <script type="module">
-const el=id=>document.getElementById(id);
-const node=(tag,text)=>Object.assign(document.createElement(tag),{textContent:text});
-async function api(url,options){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw Error(data.error);return data}
+const $=id=>document.getElementById(id),view=$('view');
+const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
+const escapeText=s=>String(s??'');
+async function api(url,options){const r=await fetch(url,options);const d=await r.json();if(!r.ok)throw Error(d.error||'Ошибка запроса');return d}
 const post=(url,data)=>api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-let me=null,mode='all',revision=0,items=[];
-function listen(element,event,fn){element.addEventListener(event,async e=>{try{await fn(e)}catch(error){el('notice').textContent=error.message}})}
-function button(label,run){const b=node('button',label);listen(b,'click',run);return b}
-function watch(v){const video=document.createElement('video');video.src='/media/'+v.id;video.controls=true;video.playsInline=true;el('player').replaceChildren(node('h2',v.title),video,button('Закрыть',()=>{el('player').replaceChildren();history.replaceState(null,'','/')}));el('player').scrollIntoView();video.play().catch(()=>{})}
-async function refresh(){
- const version=++revision;
- const result=await api('/api/videos?'+new URLSearchParams({mode,q:el('search').value}));
- if(version!==revision)return;
- items=result;el('feed').replaceChildren();el('notice').textContent=items.length?'':mode==='subs'?'Видео каналов из ваших подписок появятся здесь.':'Видео не найдены.';
- for(const key of ['all','subs'])el(key).setAttribute('aria-pressed',String(mode===key));
- for(const v of items){const card=node('article',''),actions=node('div','');actions.className='actions';
- const link=node('a','Смотреть');link.href='/?v='+v.id;link.style.color='#aff579';link.onclick=e=>{if(e.ctrlKey||e.metaKey)return;e.preventDefault();history.replaceState(null,'',link.href);watch(v)};
- actions.append(link);
- const change=async(url,data)=>{if(!me)return el('auth').showModal();await post(url,data);await refresh()};
- if(v.uid!==me?.id)actions.append(button(v.following?'Отписаться':'Подписаться',()=>change('/api/follow',{author:v.uid,enabled:!v.following})));
- for(const [label,score] of [['Больше по теме',1],['Меньше по теме',-1]]){const b=button(label,()=>change('/api/vote',{video:v.id,score:v.score===score?0:score}));b.setAttribute('aria-pressed',String(v.score===score));actions.append(b)}
- card.append(node('h2',v.title),node('p',v.name+' · '+v.topic),actions);el('feed').append(card)}
+let me=null,currentPage='home',revision=0;
+function setNav(page){document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));currentPage=page}
+function avatar(name,cls='avatar'){return make('div',(name||'?').trim().slice(0,1).toUpperCase(),cls)}
+function notice(text){const n=$('notice');if(n)n.textContent=text}
+function empty(title,desc){const e=make('div',undefined,'empty');e.append(make('strong',title),make('span',desc));return e}
+function videoCard(v){
+ const card=make('article',undefined,'video-card'),thumb=make('a',undefined,'thumb');thumb.href='/?v='+encodeURIComponent(v.id);thumb.append(make('span','▶','play'),make('span',v.topic,'topic'));thumb.addEventListener('click',e=>{e.preventDefault();openVideo(v)});
+ const info=make('div',undefined,'video-info');info.append(avatar(v.name));const copy=make('div',undefined,'video-copy');
+ const title=make('a',v.title,'video-title');title.href='/?v='+encodeURIComponent(v.id);title.addEventListener('click',e=>{e.preventDefault();openVideo(v)});
+ const author=make('a',v.name,'channel-link');author.href='/?channel='+v.uid;author.addEventListener('click',e=>{e.preventDefault();openChannel(v.uid)});
+ copy.append(title,author,make('div',new Date(v.created).toLocaleDateString('ru-RU'),'meta'));info.append(copy);card.append(thumb,info);
+ const actions=make('div',undefined,'card-actions');
+ if(me&&v.uid!==me.id){const follow=make('button',v.following?'Вы подписаны':'Подписаться','mini');follow.setAttribute('aria-pressed',String(v.following));follow.addEventListener('click',async()=>{try{await post('/api/follow',{author:v.uid,enabled:!v.following});await loadFeed(currentPage==='subs'?'subs':'all')}catch(e){notice(e.message)}});actions.append(follow)}
+ for(const [label,score] of [['Больше по теме',1],['Меньше по теме',-1]]){const b=make('button',label,'mini');b.setAttribute('aria-pressed',String(v.score===score));b.addEventListener('click',async()=>{if(!me)return $('auth').showModal();try{await post('/api/vote',{video:v.id,score:v.score===score?0:score});await loadFeed(currentPage==='subs'?'subs':'all')}catch(e){notice(e.message)}});actions.append(b)}
+ card.append(actions);return card;
 }
-async function init(){me=await api('/api/me');el('identity').textContent=me?.name||'';el('account').textContent=me?'Выйти':'Войти';await refresh()}
-for(const key of ['all','subs'])listen(el(key),'click',async()=>{mode=key;await refresh()});
-listen(el('search'),'input',refresh);
-listen(el('account'),'click',async()=>{if(me){await post('/api/logout',{});await init()}else el('auth').showModal()});
-el('uploadBtn').onclick=()=>el(me?'upload':'auth').showModal();
-for(const b of document.querySelectorAll('.close'))b.onclick=()=>b.closest('dialog').close();
-for(const id of ['credentials','publish'])el(id).onsubmit=async e=>{
- e.preventDefault();const form=e.target,submit=e.submitter,status=form.querySelector('p'),data=new FormData(form);submit.disabled=true;
- try{if(id==='credentials'){await post('/api/'+submit.value,Object.fromEntries(data))}
- else{const file=data.get('file');if(file.size>256*1024*1024)throw Error('Максимум 256 МБ');status.textContent='Загружаем видео…';await api('/api/upload?'+new URLSearchParams({title:data.get('title'),topic:data.get('topic')}),{method:'POST',body:file});mode='all';el('search').value=''}
- status.textContent='';form.reset();form.closest('dialog').close();await init()}
- catch(error){status.textContent=error.message}finally{submit.disabled=false}
-};
-try{await init();const id=new URLSearchParams(location.search).get('v');if(id){const v=items.find(v=>v.id===id);if(v)watch(v);else el('notice').textContent='Видео не найдено.'}}catch(error){el('notice').textContent=error.message}
-</script></html>
+function renderGrid(items){const grid=make('div',undefined,'grid');items.forEach(v=>grid.append(videoCard(v)));return grid}
+async function loadFeed(mode='all'){
+ const rev=++revision;view.replaceChildren();const head=make('div',undefined,'section-head');head.append(make('div',undefined));head.firstChild.append(make('h1',mode==='subs'?'Подписки':'Видео для тебя'),make('p',mode==='subs'?'Новые публикации каналов, на которые ты подписан':'Свежие видео авторов ЛовиЭфира'));view.append(head);
+ const tabs=make('div',undefined,'tabs');for(const [label,m] of [['Для тебя','all'],['Подписки','subs']]){const b=make('button',label,'tab'+(mode===m?' active':''));b.addEventListener('click',()=>{setNav(m==='subs'?'subs':'home');loadFeed(m)});tabs.append(b)}view.append(tabs);
+ const q=$('search').value.trim();const items=await api('/api/videos?'+new URLSearchParams({mode,q}));if(rev!==revision)return;
+ if(!items.length){view.append(empty(mode==='subs'?'Пока нет видео из подписок':'Пока здесь тихо',mode==='subs'?'Подпишись на интересные каналы — их новые ролики появятся здесь.':'Попробуй изменить поиск или загляни сюда позже.'));return}
+ view.append(renderGrid(items));
+}
+async function openChannel(id){
+ const rev=++revision;setNav('channel');view.replaceChildren();const c=await api('/api/channel?id='+encodeURIComponent(id));if(rev!==revision)return;
+ const cover=make('div',undefined,'profile-cover'),head=make('div',undefined,'profile-head');head.append(avatar(c.name));
+ const title=make('div',undefined,'profile-title');title.append(make('h1',c.name),make('div',undefined,'stats'));const stats=title.lastChild;
+ stats.append(make('span',undefined));stats.lastChild.append(make('b',String(c.followers)),' подписчиков');
+ stats.append(make('span',undefined));stats.lastChild.append(make('b',String(c.following)),' подписок');
+ stats.append(make('span',undefined));stats.lastChild.append(make('b',String(c.videos.length)),' видео');
+ head.append(title);const actions=make('div',undefined,'profile-actions');
+ if(!c.isMe&&me){const b=make('button',c.subscribed?'Вы подписаны':'Подписаться','btn primary');b.addEventListener('click',async()=>{try{await post('/api/follow',{author:c.id,enabled:!c.subscribed});openChannel(c.id)}catch(e){notice(e.message)}});actions.append(b)}
+ if(c.isMe)actions.append(make('span','Это твой канал','submeta'));
+ head.append(actions);view.append(cover,head);
+ const section=make('div',undefined,'section-head');section.append(make('div',undefined,''));section.firstChild.append(make('h2','Видео канала'),make('p','Все опубликованные ролики'));view.append(section);
+ if(c.videos.length)view.append(renderGrid(c.videos.map(v=>({...v,name:c.name,following:false,score:0}))));else view.append(empty('Пока нет публикаций','Когда автор загрузит видео, они появятся здесь.'));
+}
+function openVideo(v){
+ const rev=++revision;history.pushState({},'', '/?v='+encodeURIComponent(v.id));setNav('home');view.replaceChildren();
+ const back=make('button','← Назад к видео','back');back.addEventListener('click',()=>{history.pushState({},'','/');loadFeed('all')});view.append(back);
+ const wrap=make('section',undefined,'player-wrap'),video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src='/media/'+encodeURIComponent(v.id);
+ const details=make('div',undefined,'player-details'),left=make('div');left.append(make('h1',v.title));const channel=make('a',undefined,'player-channel');channel.href='/?channel='+v.uid;channel.append(avatar(v.name),make('span',v.name));channel.addEventListener('click',e=>{e.preventDefault();openChannel(v.uid)});left.append(channel);details.append(left);
+ const acts=make('div',undefined,'actions');if(me&&v.uid!==me.id){const b=make('button',v.following?'Вы подписаны':'Подписаться','btn primary');b.addEventListener('click',async()=>{try{await post('/api/follow',{author:v.uid,enabled:!v.following});const fresh=await api('/api/videos');const updated=fresh.find(x=>x.id===v.id);if(updated)openVideo(updated)}catch(e){notice(e.message)}});acts.append(b)}details.append(acts);
+ wrap.append(video,details);view.append(wrap);video.play().catch(()=>{});
+}
+async function home(){history.pushState({},'','/');setNav('home');view.replaceChildren();const hero=make('section',undefined,'hero');hero.append(make('div','ТВОЯ ВИДЕОПЛАТФОРМА','eyebrow'),make('h1','Смотри. Создавай. Делись.'),make('p','Открывай новые видео, находи авторов и собирай собственную ленту из каналов, которые тебе интересны.'));const btn=make('button','Опубликовать видео','btn primary');btn.addEventListener('click',()=>me?$('upload').showModal():$('auth').showModal());hero.append(btn);view.append(hero);await loadFeed('all')}
+async function myChannel(){if(!me){$('auth').showModal();return}history.pushState({},'','/?channel='+me.id);await openChannel(me.id)}
+async function init(){me=await api('/api/me');$('identity').textContent=me?.name||'';$('account').textContent=me?'Выйти':'Войти';const params=new URLSearchParams(location.search);if(params.has('channel'))await openChannel(params.get('channel'));else if(params.has('v')){const items=await api('/api/videos');const v=items.find(x=>x.id===params.get('v'));if(v)openVideo(v);else await home()}else await home()}
+document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page==='home'){home()}else if(b.dataset.page==='subs'){history.pushState({},'','/?feed=subs');setNav('subs');loadFeed('subs')}else myChannel().catch(e=>notice(e.message))}));
+$('brand').addEventListener('click',e=>{e.preventDefault();home()});
+$('searchForm').addEventListener('submit',e=>{e.preventDefault();history.pushState({},'','/');setNav('home');loadFeed('all')});
+$('account').addEventListener('click',async()=>{if(me){try{await post('/api/logout',{});me=null;await init()}catch(e){notice(e.message)}}else $('auth').showModal()});
+$('uploadBtn').addEventListener('click',()=>me?$('upload').showModal():$('auth').showModal());
+document.querySelectorAll('.close').forEach(b=>b.addEventListener('click',()=>b.closest('dialog').close()));
+$('credentials').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,submit=e.submitter,status=form.querySelector('.status');submit.disabled=true;try{await post('/api/'+submit.value,Object.fromEntries(new FormData(form)));status.textContent='';form.reset();$('auth').close();await init()}catch(err){status.textContent=err.message}finally{submit.disabled=false}});
+$('publish').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,submit=e.submitter,status=form.querySelector('.status'),data=new FormData(form),file=data.get('file');submit.disabled=true;try{if(!file||file.size>256*1024*1024)throw Error('Выбери видео до 256 МБ');status.textContent='Загружаем видео…';await api('/api/upload?'+new URLSearchParams({title:data.get('title'),topic:data.get('topic')}),{method:'POST',body:file});form.reset();$('upload').close();history.pushState({},'','/');await myChannel()}catch(err){status.textContent=err.message}finally{submit.disabled=false}});
+window.addEventListener('popstate',()=>{init().catch(e=>{view.replaceChildren(empty('Не удалось загрузить страницу',e.message))})});
+init().catch(e=>view.replaceChildren(empty('Ошибка загрузки',e.message)));
+</script></body></html>
