@@ -70,6 +70,15 @@ http.createServer(async(req,res)=>{
    const uid=Number(url.searchParams.get('uid'))||user?.id||0;
    return send(db.prepare('SELECT p.id,p.title,p.description,p.created,(SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist=p.id) count FROM playlists p WHERE p.uid=? ORDER BY p.created DESC').all(uid));
   }
+  if(method==='GET'&&route==='/api/subscriptions'){
+   if(!user)return send([]);
+   const rows=db.prepare(`SELECT u.id,u.name,COALESCE(u.handle,'') handle,u.description,u.avatar,u.banner,
+    (SELECT COUNT(*) FROM follows f2 WHERE f2.author=u.id) followers,
+    (SELECT COUNT(*) FROM videos v WHERE v.uid=u.id AND v.visibility='public') videos,
+    (SELECT MAX(v.created) FROM videos v WHERE v.uid=u.id AND v.visibility='public') latest
+    FROM follows f JOIN users u ON u.id=f.author WHERE f.uid=? ORDER BY u.name COLLATE NOCASE`).all(user.id);
+   return send(rows);
+  }
   if(method==='GET'&&route==='/api/channel'){
    const id=Number(url.searchParams.get('id'));if(!Number.isSafeInteger(id)||id<1)fail(400,'Некорректный канал');
    const channel=publicUser(id);if(!channel)fail(404,'Канал не найден');
