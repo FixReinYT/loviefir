@@ -60,6 +60,12 @@ http.createServer(async(req,res)=>{
    if(!v||!v.comments_enabled)return send([]);
    return send(db.prepare('SELECT c.id,c.text,c.created,u.name,u.handle,u.avatar FROM comments c JOIN users u ON u.id=c.uid WHERE c.video=? ORDER BY c.created DESC LIMIT 100').all(id));
   }
+  if(method==='GET'&&route==='/api/playlist'){
+   const id=url.searchParams.get('id'),p=db.prepare('SELECT id,uid,title,description,created FROM playlists WHERE id=?').get(id);
+   if(!p)fail(404,'Плейлист не найден');
+   const videos=db.prepare('SELECT v.*,u.name,u.handle,u.avatar FROM playlist_videos pv JOIN videos v ON v.id=pv.video JOIN users u ON u.id=v.uid WHERE pv.playlist=? AND (v.visibility IN ('public','unlisted') OR v.uid=?) ORDER BY v.created DESC').all(id,user?.id||0).map(videoRow);
+   return send({...p,videos});
+  }
   if(method==='GET'&&route==='/api/playlists'){
    const uid=Number(url.searchParams.get('uid'))||user?.id||0;
    return send(db.prepare('SELECT p.id,p.title,p.description,p.created,(SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist=p.id) count FROM playlists p WHERE p.uid=? ORDER BY p.created DESC').all(uid));
