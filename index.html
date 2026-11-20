@@ -51,7 +51,7 @@ function videoCard(v){
  const card=make('article',undefined,'video-card'),thumb=make('a',undefined,'thumb');thumb.href='/?v='+encodeURIComponent(v.id);thumb.append(make('span','▶','play'),make('span',v.topic,'topic'));thumb.addEventListener('click',e=>{e.preventDefault();openVideo(v)});
  const info=make('div',undefined,'video-info');info.append(avatar(v.name));const copy=make('div',undefined,'video-copy');
  const title=make('a',v.title,'video-title');title.href='/?v='+encodeURIComponent(v.id);title.addEventListener('click',e=>{e.preventDefault();openVideo(v)});
- const author=make('a',v.name,'channel-link');author.href='/?channel='+v.uid;author.addEventListener('click',e=>{e.preventDefault();openChannel(v.uid)});
+ const author=make('a',v.name,'channel-link');author.href='/?channel='+v.uid;author.addEventListener('click',e=>{e.preventDefault();history.pushState({},'','/?channel='+v.uid);openChannel(v.uid)});
  copy.append(title,author,make('div',new Date(v.created).toLocaleDateString('ru-RU'),'meta'));info.append(copy);card.append(thumb,info);
  const actions=make('div',undefined,'card-actions');
  if(me&&v.uid!==me.id){const follow=make('button',v.following?'Вы подписаны':'Подписаться','mini');follow.setAttribute('aria-pressed',String(v.following));follow.addEventListener('click',async()=>{try{await post('/api/follow',{author:v.uid,enabled:!v.following});await loadFeed(currentPage==='subs'?'subs':'all')}catch(e){notice(e.message)}});actions.append(follow)}
