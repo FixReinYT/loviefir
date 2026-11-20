@@ -63,7 +63,7 @@ http.createServer(async(req,res)=>{
   if(method==='GET'&&route==='/api/playlist'){
    const id=url.searchParams.get('id'),p=db.prepare('SELECT id,uid,title,description,created FROM playlists WHERE id=?').get(id);
    if(!p)fail(404,'Плейлист не найден');
-   const videos=db.prepare('SELECT v.*,u.name,u.handle,u.avatar FROM playlist_videos pv JOIN videos v ON v.id=pv.video JOIN users u ON u.id=v.uid WHERE pv.playlist=? AND (v.visibility IN ('public','unlisted') OR v.uid=?) ORDER BY v.created DESC').all(id,user?.id||0).map(videoRow);
+   const videos=db.prepare("SELECT v.*,u.name,u.handle,u.avatar FROM playlist_videos pv JOIN videos v ON v.id=pv.video JOIN users u ON u.id=v.uid WHERE pv.playlist=? AND (v.visibility IN ('public','unlisted') OR v.uid=?) ORDER BY v.created DESC").all(id,user?.id||0).map(videoRow);
    return send({...p,videos});
   }
   if(method==='GET'&&route==='/api/playlists'){
