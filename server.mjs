@@ -51,18 +51,31 @@ http.createServer(async(req,res)=>{
    const sid=randomBytes(32).toString('hex');db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(sid),account.id,now+2592000000);
    res.setHeader('Set-Cookie','sid='+sid+'; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000'+(process.env.SECURE_COOKIE==='1'?'; Secure':''));return send({ok:true});
   }
+  if(method==='GET'&&route==='/api/video'){
+   const id=url.searchParams.get('id'),v=db.prepare("SELECT v.*,u.name,u.handle,u.avatar FROM videos v JOIN users u ON u.id=v.uid WHERE v.id=? AND (v.visibility IN ('public','unlisted') OR v.uid=?)").get(id,user?.id||0);
+   if(!v)fail(404,'Видео не найдено');return send(videoRow(v));
+  }
+  if(method==='GET'&&route==='/api/comments'){
+   const id=url.searchParams.get('video'),v=db.prepare("SELECT comments_enabled FROM videos WHERE id=? AND visibility IN ('public','unlisted')").get(id);
+   if(!v||!v.comments_enabled)return send([]);
+   return send(db.prepare('SELECT c.id,c.text,c.created,u.name,u.handle,u.avatar FROM comments c JOIN users u ON u.id=c.uid WHERE c.video=? ORDER BY c.created DESC LIMIT 100').all(id));
+  }
+  if(method==='GET'&&route==='/api/playlists'){
+   const uid=Number(url.searchParams.get('uid'))||user?.id||0;
+   return send(db.prepare('SELECT p.id,p.title,p.description,p.created,(SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist=p.id) count FROM playlists p WHERE p.uid=? ORDER BY p.created DESC').all(uid));
+  }
   if(method==='GET'&&route==='/api/channel'){
    const id=Number(url.searchParams.get('id'));if(!Number.isSafeInteger(id)||id<1)fail(400,'Некорректный канал');
    const channel=publicUser(id);if(!channel)fail(404,'Канал не найден');
    const followers=db.prepare('SELECT COUNT(*) n FROM follows WHERE author=?').get(id).n,following=db.prepare('SELECT COUNT(*) n FROM follows WHERE uid=?').get(id).n;
    const subscribed=!!(user&&db.prepare('SELECT 1 FROM follows WHERE uid=? AND author=?').get(user.id,id));
-   const videos=db.prepare("SELECT v.*,u.name,u.handle FROM videos v JOIN users u ON u.id=v.uid WHERE v.uid=? AND (v.visibility='public' OR ?=v.uid) ORDER BY v.created DESC").all(id,user?.id||0).map(videoRow);
+   const videos=db.prepare("SELECT v.*,u.name,u.handle,u.avatar FROM videos v JOIN users u ON u.id=v.uid WHERE v.uid=? AND (v.visibility='public' OR ?=v.uid) ORDER BY v.created DESC").all(id,user?.id||0).map(videoRow);
    return send({...channel,followers,following,subscribed,isMe:user?.id===id,videos});
   }
   if(method==='GET'&&route==='/api/videos'){
    const uid=user?.id||0,mode=url.searchParams.get('mode'),q=(url.searchParams.get('q')||'').slice(0,100),topic=url.searchParams.get('topic')||'';
    const rows=db.prepare(\`WITH prefs AS (SELECT v.topic,SUM(b.score) weight FROM votes b JOIN videos v ON v.id=b.video WHERE b.uid=? GROUP BY v.topic)
-   SELECT v.*,u.name,u.handle,f.uid IS NOT NULL following,COALESCE(p.weight,0) weight,COALESCE(b.score,0) score
+   SELECT v.*,u.name,u.handle,u.avatar,f.uid IS NOT NULL following,COALESCE(p.weight,0) weight,COALESCE(b.score,0) score
    FROM videos v JOIN users u ON u.id=v.uid LEFT JOIN follows f ON f.author=u.id AND f.uid=? LEFT JOIN prefs p ON p.topic=v.topic LEFT JOIN votes b ON b.video=v.id AND b.uid=?
    WHERE (v.visibility='public' OR v.uid=?) AND (?=0 OR f.uid IS NOT NULL) AND (?='' OR v.topic=?) AND (instr(lower(v.title),lower(?)) OR instr(lower(v.description),lower(?)) OR instr(lower(u.name),lower(?)) OR instr(lower(v.tags),lower(?)))
    ORDER BY CASE WHEN ?=1 THEN COALESCE(p.weight,0) ELSE 0 END DESC,v.created DESC LIMIT 200\`).all(uid,uid,uid,uid,Number(mode==='subs'),topic,topic,q,q,q,q,Number(mode!=='subs'));
