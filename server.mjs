@@ -10,7 +10,7 @@ import path from 'node:path';
 
 const dir=path.resolve(process.env.DATA_DIR||'data'); await mkdir(dir,{recursive:true});
 const db=new DatabaseSync(path.join(dir,'site.sqlite'));
-db.exec(\`PRAGMA journal_mode=WAL;
+db.exec(`PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,name TEXT COLLATE NOCASE UNIQUE,salt TEXT,hash BLOB);
 CREATE TABLE IF NOT EXISTS sessions(key TEXT PRIMARY KEY,uid INTEGER,expires INTEGER);
 CREATE TABLE IF NOT EXISTS videos(id TEXT PRIMARY KEY,uid INTEGER,title TEXT,topic TEXT,mime TEXT,created INTEGER);
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS votes(uid INTEGER,video TEXT,score INTEGER,PRIMARY KE
 CREATE TABLE IF NOT EXISTS playlists(id TEXT PRIMARY KEY,uid INTEGER,title TEXT,description TEXT,created INTEGER);
 CREATE TABLE IF NOT EXISTS playlist_videos(playlist TEXT,video TEXT,PRIMARY KEY(playlist,video));
 CREATE TABLE IF NOT EXISTS views(id INTEGER PRIMARY KEY,video TEXT,uid INTEGER,created INTEGER);
-CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY,video TEXT,uid INTEGER,text TEXT,created INTEGER);\`);
+CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY,video TEXT,uid INTEGER,text TEXT,created INTEGER);`);
 function addColumn(table,name,type){try{db.exec('ALTER TABLE '+table+' ADD COLUMN '+name+' '+type)}catch(e){if(!String(e.message).includes('duplicate column'))throw e}}
 for(const [n,t] of [['handle','TEXT'],['description','TEXT NOT NULL DEFAULT ""'],['avatar','TEXT'],['banner','TEXT'],['links','TEXT NOT NULL DEFAULT "[]"']])addColumn('users',n,t);
 for(const [n,t] of [['description','TEXT NOT NULL DEFAULT ""'],['thumbnail','TEXT'],['tags','TEXT NOT NULL DEFAULT "[]"'],['visibility','TEXT NOT NULL DEFAULT "public"'],['audience','TEXT NOT NULL DEFAULT "general"'],['comments_enabled','INTEGER NOT NULL DEFAULT 1'],['views','INTEGER NOT NULL DEFAULT 0']])addColumn('videos',n,t);
@@ -89,17 +89,17 @@ http.createServer(async(req,res)=>{
   }
   if(method==='GET'&&route==='/api/videos'){
    const uid=user?.id||0,mode=url.searchParams.get('mode'),q=(url.searchParams.get('q')||'').slice(0,100),topic=url.searchParams.get('topic')||'';
-   const rows=db.prepare(\`WITH prefs AS (SELECT v.topic,SUM(b.score) weight FROM votes b JOIN videos v ON v.id=b.video WHERE b.uid=? GROUP BY v.topic)
+   const rows=db.prepare(`WITH prefs AS (SELECT v.topic,SUM(b.score) weight FROM votes b JOIN videos v ON v.id=b.video WHERE b.uid=? GROUP BY v.topic)
    SELECT v.*,u.name,u.handle,u.avatar,f.uid IS NOT NULL following,COALESCE(p.weight,0) weight,COALESCE(b.score,0) score
    FROM videos v JOIN users u ON u.id=v.uid LEFT JOIN follows f ON f.author=u.id AND f.uid=? LEFT JOIN prefs p ON p.topic=v.topic LEFT JOIN votes b ON b.video=v.id AND b.uid=?
    WHERE (v.visibility='public' OR v.uid=?) AND (?=0 OR f.uid IS NOT NULL) AND (?='' OR v.topic=?) AND (instr(lower(v.title),lower(?)) OR instr(lower(v.description),lower(?)) OR instr(lower(u.name),lower(?)) OR instr(lower(v.tags),lower(?)))
-   ORDER BY CASE WHEN ?=1 THEN COALESCE(p.weight,0) ELSE 0 END DESC,v.created DESC LIMIT 200\`).all(uid,uid,uid,uid,Number(mode==='subs'),topic,topic,q,q,q,q,Number(mode!=='subs'));
+   ORDER BY CASE WHEN ?=1 THEN COALESCE(p.weight,0) ELSE 0 END DESC,v.created DESC LIMIT 200`).all(uid,uid,uid,uid,Number(mode==='subs'),topic,topic,q,q,q,q,Number(mode!=='subs'));
    return send(rows.map(videoRow));
   }
   if(route.startsWith('/media/')&&['GET','HEAD'].includes(method)){
    const id=path.basename(route.slice(7)),v=db.prepare('SELECT mime FROM videos WHERE id=?').get(id);if(!v)fail(404,'Видео не найдено');
    const file=path.join(dir,id),{size}=await stat(file);let start=0,end=size-1;const range=req.headers.range;
-   if(range){const m=/^bytes=(\\d*)-(\\d*)$/.exec(range);if(m&&(m[1]||m[2])){start=m[1]?Number(m[1]):Math.max(0,size-Number(m[2]));end=m[1]&&m[2]?Math.min(end,Number(m[2])):end}if(!m||!(m[1]||m[2])||start>end||start>=size){res.writeHead(416,{'Content-Range':'bytes */'+size});return res.end()}res.setHeader('Content-Range',\`bytes \${start}-\${end}/\${size}\`)}
+   if(range){const m=/^bytes=(\\d*)-(\\d*)$/.exec(range);if(m&&(m[1]||m[2])){start=m[1]?Number(m[1]):Math.max(0,size-Number(m[2]));end=m[1]&&m[2]?Math.min(end,Number(m[2])):end}if(!m||!(m[1]||m[2])||start>end||start>=size){res.writeHead(416,{'Content-Range':'bytes */'+size});return res.end()}res.setHeader('Content-Range',`bytes \${start}-\${end}/\${size}`)}
    res.writeHead(range?206:200,{'Accept-Ranges':'bytes','Content-Type':v.mime,'Content-Length':end-start+1});if(method==='HEAD')return res.end();await pipeline(createReadStream(file,{start,end}),res);return;
   }
   if(route.startsWith('/asset/')&&['GET','HEAD'].includes(method)){
