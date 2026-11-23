@@ -23,14 +23,14 @@ CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY,video TEXT,uid INTEGE
 function addColumn(table,name,type){try{db.exec('ALTER TABLE '+table+' ADD COLUMN '+name+' '+type)}catch(e){if(!String(e.message).includes('duplicate column'))throw e}}
 for(const [n,t] of [['handle','TEXT'],['description','TEXT NOT NULL DEFAULT ""'],['avatar','TEXT'],['banner','TEXT'],['links','TEXT NOT NULL DEFAULT "[]"']])addColumn('users',n,t);
 for(const [n,t] of [['description','TEXT NOT NULL DEFAULT ""'],['thumbnail','TEXT'],['tags','TEXT NOT NULL DEFAULT "[]"'],['visibility','TEXT NOT NULL DEFAULT "public"'],['audience','TEXT NOT NULL DEFAULT "general"'],['comments_enabled','INTEGER NOT NULL DEFAULT 1'],['views','INTEGER NOT NULL DEFAULT 0']])addColumn('videos',n,t);
-db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_handle_unique ON users(handle) WHERE handle IS NOT NULL AND handle<>""');
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_handle_unique ON users(handle) WHERE handle IS NOT NULL AND handle<>''");
 const topics=['Анимация','Игры','Музыка','Образование','Путешествия','Развлечения','Другое'];
 const derive=promisify(scrypt),digest=v=>createHash('sha256').update(v).digest('hex');
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code})};
 async function jsonBody(req,limit=65536){const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>limit)fail(413,'Слишком много данных');chunks.push(c)}try{return JSON.parse(Buffer.concat(chunks).toString())||{}}catch{fail(400,'Некорректный JSON')}}
 const html=await readFile(new URL('./index.html',import.meta.url)),attempts=new Map();
 const cleanup=setInterval(()=>{for(const [ip,e] of attempts)if(e.until<Date.now())attempts.delete(ip);db.prepare('DELETE FROM sessions WHERE expires<?').run(Date.now())},600000);cleanup.unref();
-function publicUser(id){return db.prepare('SELECT id,name,COALESCE(handle,"") handle,description,avatar,banner,links FROM users WHERE id=?').get(id)}
+function publicUser(id){return db.prepare("SELECT id,name,COALESCE(handle,'') handle,description,avatar,banner,links FROM users WHERE id=?").get(id)}
 function videoRow(v){return {...v,tags:JSON.parse(v.tags||'[]'),comments_enabled:!!v.comments_enabled}}
 http.createServer(async(req,res)=>{
  try{
