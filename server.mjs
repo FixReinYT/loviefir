@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS playlist_videos(playlist TEXT,video TEXT,PRIMARY KEY(
 CREATE TABLE IF NOT EXISTS views(id INTEGER PRIMARY KEY,video TEXT,uid INTEGER,created INTEGER);
 CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY,video TEXT,uid INTEGER,text TEXT,created INTEGER);`);
 function addColumn(table,name,type){try{db.exec('ALTER TABLE '+table+' ADD COLUMN '+name+' '+type)}catch(e){if(!String(e.message).includes('duplicate column'))throw e}}
-for(const [n,t] of [['handle','TEXT'],['description','TEXT NOT NULL DEFAULT ""'],['avatar','TEXT'],['banner','TEXT'],['links','TEXT NOT NULL DEFAULT "[]"']])addColumn('users',n,t);
-for(const [n,t] of [['description','TEXT NOT NULL DEFAULT ""'],['thumbnail','TEXT'],['tags','TEXT NOT NULL DEFAULT "[]"'],['visibility','TEXT NOT NULL DEFAULT "public"'],['audience','TEXT NOT NULL DEFAULT "general"'],['comments_enabled','INTEGER NOT NULL DEFAULT 1'],['views','INTEGER NOT NULL DEFAULT 0']])addColumn('videos',n,t);
+for(const [n,t] of [['handle','TEXT'],['description',"TEXT NOT NULL DEFAULT ''"],['avatar','TEXT'],['banner','TEXT'],['links',"TEXT NOT NULL DEFAULT '[]'"]])addColumn('users',n,t);
+for(const [n,t] of [['description','TEXT NOT NULL DEFAULT ""'],['thumbnail','TEXT'],['tags',"TEXT NOT NULL DEFAULT '[]'"],['visibility',"TEXT NOT NULL DEFAULT 'public'"],['audience',"TEXT NOT NULL DEFAULT 'general'"],['comments_enabled','INTEGER NOT NULL DEFAULT 1'],['views','INTEGER NOT NULL DEFAULT 0']])addColumn('videos',n,t);
 db.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_handle_unique ON users(handle) WHERE handle IS NOT NULL AND handle<>''");
 const topics=['Анимация','Игры','Музыка','Образование','Путешествия','Развлечения','Другое'];
 const derive=promisify(scrypt),digest=v=>createHash('sha256').update(v).digest('hex');
